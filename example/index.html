@@ -213,34 +213,6 @@ function CSG2Object3D(obj){
 CSG2Object3D.makeColor = c=>new THREE.Color(c[0],c[1],c[2])
 CSG2Object3D.materials = materials
 
-/*
-
-To use it, first call AllocateDoubleVertexArray to allocate a buffer. It returns a pointer back, which should look like an integer in Javascript land.
-In JavaScript create a typed array on the webasm's memory starting at the returned pointer.
-Fill in the vertices using JavaScript.
-Call AllocateTempVertexBuffer and remember the result for passing into AddPolygonToMesh later.
-Call AllocateMesh a total of 3 times. Twice for the two input meshes, and once for an output mesh.
-Call AddPolygonToMesh at least once for each of the input meshes.
-Call UnionMeshes and give it the 3 meshes.
-Use GetPolygonCount, GetPolygonVertexCount, and GetPolygonVertices to read the results out of the output mesh.
-
-*/
-
-function testWalnut(){
-	let $w = walnutJavascript
-	let pointer = $w._AllocateDoubleVertexArray()
-	let geom1 = makeCube({size:[10,10,10]})
-	let mesh1 = CSG2Object3D(geom1)
-	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
-	let mesh2 = CSG2Object3D(geom2)
-
-	let wMesh1 = $w._AllocateMesh(geom1.indices.length)
-	let wMesh2 = $w._AllocateMesh(geom2.indices.length)
-	let wMesh3 = $w._AllocateMesh(geom1.indices.length)
-
-	setMeshes([mesh1,mesh2])
-}
-
 function makeCube({size, tx=0, ty=0, tz=0}){
 	let vLen = 12
 	let px = size[0]/2
@@ -302,5 +274,45 @@ function makeCube({size, tx=0, ty=0, tz=0}){
 
 	return {indices, vertices, type: 'mesh'}
 }
+
+
+
+
+
+/*
+
+To use it, first call AllocateDoubleVertexArray to allocate a buffer. It returns a pointer back, which should look like an integer in Javascript land.
+In JavaScript create a typed array on the webasm's memory starting at the returned pointer.
+Fill in the vertices using JavaScript.
+Call AllocateTempVertexBuffer and remember the result for passing into AddPolygonToMesh later.
+Call AllocateMesh a total of 3 times. Twice for the two input meshes, and once for an output mesh.
+Call AddPolygonToMesh at least once for each of the input meshes.
+Call UnionMeshes and give it the 3 meshes.
+Use GetPolygonCount, GetPolygonVertexCount, and GetPolygonVertices to read the results out of the output mesh.
+
+*/
+
+function testWalnut(){
+	let $w = walnutJavascript
+	let pointer = $w._AllocateDoubleVertexArray()
+	let geom1 = makeCube({size:[10,10,10]})
+	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
+
+	let wMesh1 = $w._AllocateMesh(geom1.indices.length)
+	let wMesh2 = $w._AllocateMesh(geom2.indices.length)
+	let wMesh3 = $w._AllocateMesh(geom1.indices.length)
+
+	// display in threejs
+	let mesh1 = CSG2Object3D(geom1)
+	let mesh2 = CSG2Object3D(geom2)
+	setMeshes([mesh1,mesh2])
+}
+
+
+
+
+
+
+
 
 </script>
