@@ -2876,11 +2876,5 @@ if (Module['preInit']) {
   }
 }
 
-run();
-
-
-
-
-
     return Module;
 }));
