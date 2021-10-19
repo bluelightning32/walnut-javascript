@@ -20,7 +20,8 @@ let CAM_DISTANCE = 100
 let shouldRender = Date.now()
 let lastRender = true
 let firstRender = true
-walnutJavascript.onRuntimeInitialized = ()=>{
+let $w = walnutJavascript
+$w.onRuntimeInitialized = ()=>{
 	console.log('walnutJavascript.onRuntimeInitialized')
 	testWalnut();
 }
@@ -292,46 +293,41 @@ Use GetPolygonCount, GetPolygonVertexCount, and GetPolygonVertices to read the r
 
 */
 
+function toWalnut(obj){
+	let vertexCount = obj.vertices.length
+
+	let vertexPointer = $w._AllocateDoubleVertexArray(/*max_vertices=*/vertexCount)
+	console.log('Got pointer for vertexPointer=' + vertexPointer);
+	let tempBuffer = $w._AllocateTempVertexBuffer()
+	// not sure about: vertexPointer/8 + vertexCount
+	let vertices = $w.HEAPF64.subarray(vertexPointer/8, vertexPointer/8 + vertexCount)
+
+	// this is form js api, it will copy all elements from one array to other
+	// and should convert values (input is Float32Array)
+	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/set
+	vertices.set(obj.vertices)
+	console.log('vertices',vertices);
+
+	// not sure what parameters go into AllocateMesh, and if it is correct this way
+	let mesh = $w._AllocateMesh(obj.indices.length)
+	$w._AddPolygonToMesh(4, vertexPointer, tempBuffer, mesh, -8)
+	console.log('Polygons in mesh: ' + $w._GetPolygonCount(mesh))
+	return { mesh, vertices, tempBuffer, vertexPointer }
+}
+
 function testWalnut(){
-	let $w = walnutJavascript
 	let geom1 = makeCube({size:[10,10,10]})
 	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
-	let vertexPointer = $w._AllocateDoubleVertexArray(/*max_vertices=*/4)
-	console.log('Got pointer for vertexPointer=' + vertexPointer);
-	let vertices = $w.HEAPF64.subarray(vertexPointer/8, vertexPointer/8 + 4*3)
-	// TODO: fill in coordinates from geom1
-	vertices[0*3 + 0] = 0;
-	vertices[0*3 + 1] = 0;
-	vertices[0*3 + 2] = 0;
-	vertices[1*3 + 0] = 1;
-	vertices[1*3 + 1] = 0;
-	vertices[1*3 + 2] = 0;
-	vertices[2*3 + 0] = 1;
-	vertices[2*3 + 1] = 1;
-	vertices[2*3 + 2] = 0;
-	vertices[3*3 + 0] = 0;
-	vertices[3*3 + 1] = 1;
-	vertices[3*3 + 2] = 0;
 
-	let tempBuffer = $w._AllocateTempVertexBuffer()
-	let wMesh1 = $w._AllocateMesh(geom1.indices.length)
-	$w._AddPolygonToMesh(4, vertexPointer, tempBuffer, wMesh1, -8)
-	console.log('Polygons in wMesh1: ' + $w._GetPolygonCount(wMesh1))
-
-	let wMesh2 = $w._AllocateMesh(geom2.indices.length)
-	let wMesh3 = $w._AllocateMesh(geom1.indices.length)
+	let wMesh1 = toWalnut(geom1)
+	console.log('wMesh1',wMesh1);
+	let wMesh2 = toWalnut(geom2)
+	console.log('wMesh2',wMesh2);
 
 	// display in threejs
 	let mesh1 = CSG2Object3D(geom1)
 	let mesh2 = CSG2Object3D(geom2)
 	setMeshes([mesh1,mesh2])
 }
-
-
-
-
-
-
-
 
 </script>
