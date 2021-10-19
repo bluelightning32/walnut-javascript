@@ -1,0 +1,8 @@
+{
+	"name": "walnut-javascript",
+	"version": "0.1.0",
+	"scripts": {
+		"dev": "http-server example -p 12080 -o index.html"
+	},
+	"license": "MIT"
+}

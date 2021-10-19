@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>walnut javascript example</title>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css?_8">
+	<script src="Three.jscad.js"></script>
+	<script src="walnut-javascript.js"></script>
+</head>
+<body>
+	<div id="renderIndicator">R</div>
+
+</body>
+<script type="text/javascript">
+	
+let scene, camera, controls, mesh, grid, ground, meshes=[];
+let renderer
+let SHADOW = false
+let CAM_DISTANCE = 100
+let shouldRender = Date.now()
+let lastRender = true
+let firstRender = true
+init();
+animate();
+
+
+function init() {
+
+	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 50000 );
+	camera.position.set( 180, -180, 220 );
+	camera.up.set( 0, 0, 1 );
+
+	scene = new THREE.Scene();
+	scene.background = new THREE.Color( 0xffffff );
+	//scene.fog = new THREE.Fog( 0xffffff, 200, 1000 );
+	//
+
+	const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+	hemiLight.position.set( 0, 0, 2000 );
+	scene.add( hemiLight );
+
+	const directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 0, 200, 100 );
+	directionalLight.castShadow = SHADOW;
+	if(SHADOW){				
+		directionalLight.shadow.camera.top = 180;
+		directionalLight.shadow.camera.bottom = - 100;
+		directionalLight.shadow.camera.left = - 120;
+		directionalLight.shadow.camera.right = 120;
+	}
+	scene.add( directionalLight );
+
+	// ground
+
+	ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200 ), new THREE.MeshPhongMaterial( { color: 0xffffff, depthWrite: false } ) );
+	// ground.rotation.x =  - Math.PI / 2;
+	// ground.rotation.y =  - Math.PI / 2;
+	ground.receiveShadow = SHADOW;
+	scene.add( ground );
+
+	grid = new THREE.GridHelper( 200, 20, 0x000000, 0x000000 );
+	grid.rotation.x = - Math.PI / 2;
+	// grid.rotation.y = - Math.PI / 2;
+	grid.material.opacity = 0.2;
+	grid.material.transparent = true;
+	scene.add( grid );
+
+
+	grid2 = new THREE.GridHelper( 200, 200, 0x000000, 0x000000 );
+	grid2.rotation.x = - Math.PI / 2;
+	// grid.rotation.y = - Math.PI / 2;
+	grid2.material.opacity = 0.1;
+	grid2.material.transparent = true;
+	scene.add( grid2 );
+
+	let axes = new THREE.AxesHelper( 10 );
+	scene.add( axes );
+
+	renderer = new THREE.WebGLRenderer( { antialias: true, preserveDrawingBuffer : true } )
+	
+	// renderer = new SVGRenderer( { overdraw:0.1 } );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	onWindowResize()
+	//renderer.shadowMap.enabled = SHADOW;
+	document.body.appendChild( renderer.domElement );
+
+	//
+
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls.target.set( 0, 0, 0 );
+	controls.update();
+	controls.addEventListener('change',function(){
+		moveshouldRender()
+	})
+
+	//
+
+	window.addEventListener( 'resize', onWindowResize, false );
+	let body = document.body
+
+
+	// body.addEventListener( 'mousemove', moveshouldRender );
+	// body.addEventListener( 'mousedown', moveshouldRender );
+	// body.addEventListener( 'drag', moveshouldRender );
+	// body.addEventListener( 'dragover', moveshouldRender );
+	function addClick(id,func){
+		const button = document.getElementById( id );
+		button.addEventListener( 'click', func );
+	}	
+}
+
+function animate() {
+	requestAnimationFrame( animate )
+	if(!shouldRender){
+		if(lastRender){
+			setVisible('renderIndicator', lastRender = false)
+		}
+		return;
+	} 
+	if(!lastRender){
+		setVisible('renderIndicator', lastRender = true)
+	}
+	let time = firstRender ?  performance.now() : 0
+	firstRender = false
+	shouldRender = controls.autoRotate
+    controls.update();
+	renderer.render( scene, camera );
+	if(time) {
+		firstRenderMsg = 'first render '+(performance.now() - time).toFixed(2)
+	}
+}
+
+function onWindowResize() {
+	moveshouldRender()
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight )
+}
+
+
+function moveshouldRender(offset = 500){
+	shouldRender = true
+}
+function setVisible(id, v){
+	let elem = document.getElementById(id)
+	if(elem) elem.style.display = v ? 'initial':'none'
+	else console.log('setVisible: elem not found',id)
+}
+
+</script>
