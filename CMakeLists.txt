@@ -12,3 +12,6 @@ add_executable(walnut-javascript interface.cpp)
 set_target_properties(walnut-javascript PROPERTIES
                       PUBLIC_HEADER "interface.h")
 target_link_libraries(walnut-javascript walnut)
+target_link_options(walnut-javascript
+  PRIVATE --extern-pre-js=${CMAKE_CURRENT_SOURCE_DIR}/prefix.js
+          --extern-post-js=${CMAKE_CURRENT_SOURCE_DIR}/suffix.js)
