@@ -49,6 +49,12 @@ bool EMSCRIPTEN_KEEPALIVE UnionMeshes(
     const std::vector<MutableConvexPolygon<>>* source2,
     std::vector<MutableConvexPolygon<>>* target);
 
+// Returns true if successful
+bool EMSCRIPTEN_KEEPALIVE IntersectMeshes(
+    const std::vector<MutableConvexPolygon<>>* source1,
+    const std::vector<MutableConvexPolygon<>>* source2,
+    std::vector<MutableConvexPolygon<>>* target);
+
 size_t EMSCRIPTEN_KEEPALIVE GetPolygonCount(
     const std::vector<MutableConvexPolygon<>>* mesh);
 
