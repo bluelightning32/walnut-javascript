@@ -11,6 +11,13 @@ namespace walnut {
 
 extern "C" {
 
+float* EMSCRIPTEN_KEEPALIVE AllocateFloatVertexArray(size_t max_vertices);
+
+void EMSCRIPTEN_KEEPALIVE FreeFloatVertexArray(float* vertices);
+
+float* EMSCRIPTEN_KEEPALIVE ResizeFloatVertexArray(float* vertices,
+                                                   size_t new_max_vertices);
+
 double* EMSCRIPTEN_KEEPALIVE AllocateDoubleVertexArray(size_t max_vertices);
 
 void EMSCRIPTEN_KEEPALIVE FreeDoubleVertexArray(double* vertices);
@@ -32,6 +39,10 @@ void EMSCRIPTEN_KEEPALIVE AddPolygonToMesh(
     std::vector<HomoPoint3>* temp_buffer,
     std::vector<MutableConvexPolygon<>>* target, int min_exponent);
 
+void EMSCRIPTEN_KEEPALIVE AddFloatTrianglesToMesh(
+    size_t triangle_count, const float* triangle_vertices,
+    std::vector<MutableConvexPolygon<>>* target, int min_exponent);
+
 // Returns true if successful
 bool EMSCRIPTEN_KEEPALIVE UnionMeshes(
     const std::vector<MutableConvexPolygon<>>* source1,
@@ -47,6 +58,13 @@ size_t EMSCRIPTEN_KEEPALIVE GetPolygonVertexCount(
 void EMSCRIPTEN_KEEPALIVE GetPolygonVertices(
     const std::vector<MutableConvexPolygon<>>* mesh, size_t polygon_index,
     double* output_vertices);
+
+size_t EMSCRIPTEN_KEEPALIVE GetTriangleCountInMesh(
+    const std::vector<MutableConvexPolygon<>>* mesh);
+
+void EMSCRIPTEN_KEEPALIVE GetFloatTrianglesFromMesh(
+    const std::vector<MutableConvexPolygon<>>* mesh,
+    float* triangle_vertices);
 
 }
 

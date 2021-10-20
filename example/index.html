@@ -294,25 +294,35 @@ Use GetPolygonCount, GetPolygonVertexCount, and GetPolygonVertices to read the r
 */
 
 function toWalnut(obj){
-	let vertexCount = obj.vertices.length
+	let vertexCount = obj.vertices.length / 3
 
-	let vertexPointer = $w._AllocateDoubleVertexArray(/*max_vertices=*/vertexCount)
-	console.log('Got pointer for vertexPointer=' + vertexPointer);
-	let tempBuffer = $w._AllocateTempVertexBuffer()
-	// not sure about: vertexPointer/8 + vertexCount
-	let vertices = $w.HEAPF64.subarray(vertexPointer/8, vertexPointer/8 + vertexCount)
+	let vertexPointer = $w._AllocateFloatVertexArray(/*max_vertices=*/vertexCount)
+	let vertices = $w.HEAPF32.subarray(vertexPointer/4, vertexPointer/4 + vertexCount*3)
 
 	// this is form js api, it will copy all elements from one array to other
-	// and should convert values (input is Float32Array)
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/set
 	vertices.set(obj.vertices)
-	console.log('vertices',vertices);
 
-	// not sure what parameters go into AllocateMesh, and if it is correct this way
-	let mesh = $w._AllocateMesh(obj.indices.length)
-	$w._AddPolygonToMesh(4, vertexPointer, tempBuffer, mesh, -8)
-	console.log('Polygons in mesh: ' + $w._GetPolygonCount(mesh))
-	return { mesh, vertices, tempBuffer, vertexPointer }
+	let triangleCount = vertexCount / 3
+	let mesh = $w._AllocateMesh(triangleCount)
+	$w._AddFloatTrianglesToMesh(triangleCount, vertexPointer, mesh, -8)
+	$w._FreeFloatVertexArray(vertexPointer)
+	return mesh
+}
+
+function toGeom(mesh){
+	let triangleCount = $w._GetTriangleCountInMesh(mesh)
+	let vertexCount = triangleCount * 3
+	let vertexPointer = $w._AllocateFloatVertexArray(vertexCount)
+	$w._GetFloatTrianglesFromMesh(mesh, vertexPointer)
+
+	let vertices = new Float32Array(vertexCount * 3)
+	vertices.set($w.HEAPF32.subarray(vertexPointer/4, vertexPointer/4 + vertexCount*3))
+	let indices = new Uint16Array(vertexCount * 3)
+	for (let i = 0; i < vertexCount; ++i) {
+		indices[i] = i
+	}
+	return {indices, vertices, type: 'mesh'}
 }
 
 function testWalnut(){
@@ -320,14 +330,22 @@ function testWalnut(){
 	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
 
 	let wMesh1 = toWalnut(geom1)
-	console.log('wMesh1',wMesh1);
+	console.log('wMesh1',wMesh1)
 	let wMesh2 = toWalnut(geom2)
-	console.log('wMesh2',wMesh2);
+	console.log('wMesh2',wMesh2)
+
+	let wUnionMesh = $w._AllocateMesh(geom1.vertices.length / 9)
+	let unionSuccess = $w._UnionMeshes(wMesh1, wMesh2, wUnionMesh)
+	let result = toGeom(wUnionMesh)
+	console.log('unionresult', unionSuccess, result)
 
 	// display in threejs
-	let mesh1 = CSG2Object3D(geom1)
-	let mesh2 = CSG2Object3D(geom2)
-	setMeshes([mesh1,mesh2])
+	let mesh1 = CSG2Object3D(result)
+	setMeshes([mesh1])
+
+	$w._FreeMesh(wMesh1)
+	$w._FreeMesh(wMesh2)
+	$w._FreeMesh(wUnionMesh)
 }
 
 </script>
