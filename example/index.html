@@ -4,6 +4,7 @@
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<link type="text/css" rel="stylesheet" href="main.css?_8">
 	<script src="Three.jscad.js"></script>
+	<script src="jscad-modeling.min.js"></script>
 	<script src="walnut-javascript.js"></script>
 </head>
 <body>
@@ -20,6 +21,7 @@ let CAM_DISTANCE = 100
 let shouldRender = Date.now()
 let lastRender = true
 let firstRender = true
+let jscad = jscadModeling
 let $w = walnutJavascript
 $w.onRuntimeInitialized = ()=>{
 	console.log('walnutJavascript.onRuntimeInitialized')
@@ -233,6 +235,7 @@ function makeCube({size, tx=0, ty=0, tz=0}){
 	let pz = size[2]/2
 	let vertices = new Float32Array(vLen * 3 * 3)
 	let indices = new Uint16Array(vLen * 3)
+	let polygons = []
 
 	let vertOffset = 0
 	let posOffset = 0
@@ -247,6 +250,7 @@ function makeCube({size, tx=0, ty=0, tz=0}){
 	let p7 = [-px+tx, py+ty, pz+tz]
 
 	function addPoly(...arr){
+		polygons.push(arr)
     	let len = arr.length
     	
     	vertices.set(arr[0], vertOffset)
@@ -285,15 +289,11 @@ function makeCube({size, tx=0, ty=0, tz=0}){
 	addPoly(p1,p2,p6,p5)
 	addPoly(p0,p4,p7,p3)
 
-	return {indices, vertices, type: 'mesh'}
+	return {indices, vertices, type: 'mesh', polygons}
 }
 
 
-
-
-
 /*
-
 To use it, first call AllocateDoubleVertexArray to allocate a buffer. It returns a pointer back, which should look like an integer in Javascript land.
 In JavaScript create a typed array on the webasm's memory starting at the returned pointer.
 Fill in the vertices using JavaScript.
@@ -302,10 +302,43 @@ Call AllocateMesh a total of 3 times. Twice for the two input meshes, and once f
 Call AddPolygonToMesh at least once for each of the input meshes.
 Call UnionMeshes and give it the 3 meshes.
 Use GetPolygonCount, GetPolygonVertexCount, and GetPolygonVertices to read the results out of the output mesh.
-
 */
 
+let polyBuffer
+let tmpBuffer
+
+function resizePolyBuffer(){
+	polyBuffer.free()
+	polyBuffer = w_AllocateFloatVertexArray(polyBuffer.vertexCount*2)
+	console.log('resizing poly buffer',polyBuffer.vertexCount*2)
+}
+
+function w_AllocateFloatVertexArray(vertexCount){
+	let vertexPointer = $w._AllocateFloatVertexArray(/*max_vertices=*/vertexCount)
+	let vertices = $w.HEAPF32.subarray(vertexPointer/4, vertexPointer/4 + vertexCount*3)
+	vertices.vertexPointer = vertexPointer
+	vertices.vertexCount = vertexCount
+	vertices.free = ()=> $w._FreeFloatVertexArray(vertexPointer)
+	return vertices	
+}
+
 function toWalnut(obj){
+	let mesh = $w._AllocateMesh(obj.polygons.length*3)
+
+	console.log('polygons',obj.polygons)
+	obj.polygons.forEach(p=>{
+		let count = 0
+		p.forEach(v=>{
+			polyBuffer.set(p, count)// count is also offset
+			count+=v.length
+		})
+		$w._AddPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+	})
+	
+	return mesh
+}
+
+function toWalnutOldVertexOnly(obj){
 	let vertexCount = obj.vertices.length / 3
 
 	let vertexPointer = $w._AllocateFloatVertexArray(/*max_vertices=*/vertexCount)
@@ -334,10 +367,14 @@ function toGeom(mesh){
 	for (let i = 0; i < vertexCount; ++i) {
 		indices[i] = i
 	}
+	$w._FreeFloatVertexArray(vertexPointer)
 	return {indices, vertices, type: 'mesh'}
 }
 
 function testWalnut(){
+	polyBuffer = w_AllocateFloatVertexArray(4096)
+	tmpBuffer = $w._AllocateTempVertexBuffer()
+
 	let geom1 = makeCube({size:[10,10,10]})
 	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
 
