@@ -334,10 +334,11 @@ function testWalnut(){
 	let wMesh2 = toWalnut(geom2)
 	console.log('wMesh2',wMesh2)
 
-	let wUnionMesh = $w._AllocateMesh(geom1.vertices.length / 9)
-	let unionSuccess = $w._UnionMeshes(wMesh1, wMesh2, wUnionMesh)
-	let result = toGeom(wUnionMesh)
-	console.log('unionresult', unionSuccess, result)
+	let wResult = $w._AllocateMesh(geom1.vertices.length / 9)
+	$w._InvertMesh(wMesh2)
+	let filterSuccess = $w._SubtractMesh(wMesh1, wMesh2, wResult)
+	let result = toGeom(wResult)
+	console.log('filter result', filterSuccess, result)
 
 	// display in threejs
 	let mesh1 = CSG2Object3D(result)
@@ -345,7 +346,7 @@ function testWalnut(){
 
 	$w._FreeMesh(wMesh1)
 	$w._FreeMesh(wMesh2)
-	$w._FreeMesh(wUnionMesh)
+	$w._FreeMesh(wResult)
 }
 
 </script>

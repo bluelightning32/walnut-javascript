@@ -43,6 +43,9 @@ void EMSCRIPTEN_KEEPALIVE AddFloatTrianglesToMesh(
     size_t triangle_count, const float* triangle_vertices,
     std::vector<MutableConvexPolygon<>>* target, int min_exponent);
 
+void EMSCRIPTEN_KEEPALIVE InvertMesh(
+    std::vector<MutableConvexPolygon<>>* mesh);
+
 // Returns true if successful
 bool EMSCRIPTEN_KEEPALIVE UnionMeshes(
     const std::vector<MutableConvexPolygon<>>* source1,
@@ -54,6 +57,14 @@ bool EMSCRIPTEN_KEEPALIVE IntersectMeshes(
     const std::vector<MutableConvexPolygon<>>* source1,
     const std::vector<MutableConvexPolygon<>>* source2,
     std::vector<MutableConvexPolygon<>>* target);
+
+// Returns true if successful
+//
+// `subtrahend` must be an inverted mesh.
+bool EMSCRIPTEN_KEEPALIVE SubtractMesh(
+    const std::vector<MutableConvexPolygon<>>* minuend,
+    const std::vector<MutableConvexPolygon<>>* subtrahend,
+    std::vector<MutableConvexPolygon<>>* result);
 
 size_t EMSCRIPTEN_KEEPALIVE GetPolygonCount(
     const std::vector<MutableConvexPolygon<>>* mesh);

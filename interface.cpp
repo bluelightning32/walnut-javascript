@@ -149,6 +149,12 @@ void AddPolygonToMesh(size_t source_vertex_count,
                         /*end=*/temp_buffer->end());
 }
 
+void InvertMesh(std::vector<MutableConvexPolygon<>>* mesh) {
+  for (auto& polygon : *mesh) {
+    polygon.Invert();
+  }
+}
+
 bool UnionMeshes(const std::vector<MutableConvexPolygon<>>* source1,
                  const std::vector<MutableConvexPolygon<>>* source2,
                  std::vector<MutableConvexPolygon<>>* target) {
@@ -204,6 +210,37 @@ bool IntersectMeshes(const std::vector<MutableConvexPolygon<>>* source1,
   target->reserve(polygons.size());
   for (auto& polygon : polygons) {
     target->emplace_back(std::move(polygon));
+  }
+
+  return !errored;
+}
+
+bool SubtractMesh(const std::vector<MutableConvexPolygon<>>* minuend,
+                  const std::vector<MutableConvexPolygon<>>* subtrahend,
+                  std::vector<MutableConvexPolygon<>>* result) {
+  BSPTree<> tree;
+
+  BSPContentId id1 = tree.AllocateId();
+  BSPContentId id2 = tree.AllocateId();
+  tree.AddContents(id1, *minuend);
+  tree.AddContents(id2, *subtrahend);
+
+  auto filter = MakeSubtractionFilter(PolygonFilter(id1),
+                                      InvertedPolygonFilter(id2));
+
+  bool errored = false;
+  auto error_log = [&errored](const std::string& error) {
+    errored = true;
+  };
+
+  ConnectingVisitor<decltype(filter), MutableConvexPolygon<>> visitor(filter, error_log);
+  tree.Traverse(visitor);
+  visitor.FilterEmptyPolygons();
+  result->clear();
+  auto polygons = visitor.TakePolygons();
+  result->reserve(polygons.size());
+  for (auto& polygon : polygons) {
+    result->emplace_back(std::move(polygon));
   }
 
   return !errored;
