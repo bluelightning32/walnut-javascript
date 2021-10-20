@@ -10,7 +10,7 @@ namespace walnut {
 
 double* AllocateDoubleVertexArray(size_t max_vertices) {
   return reinterpret_cast<double*>(
-      std::malloc(sizeof(double *) * max_vertices * 3));
+      std::malloc(sizeof(double) * max_vertices * 3));
 }
 
 void FreeDoubleVertexArray(double* vertices) {
@@ -19,7 +19,7 @@ void FreeDoubleVertexArray(double* vertices) {
 
 double* ResizeDoubleVertexArray(double* vertices, size_t new_max_vertices) {
   return reinterpret_cast<double*>(
-    std::realloc(vertices, sizeof(double *) * new_max_vertices * 3));
+    std::realloc(vertices, sizeof(double) * new_max_vertices * 3));
 }
 
 std::vector<HomoPoint3>* AllocateTempVertexBuffer() {
