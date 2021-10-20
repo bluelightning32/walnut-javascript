@@ -32,7 +32,13 @@ animate();
 function init() {
 
 	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 50000 );
+	let oldCamera = localStorage.getItem('camera')
 	camera.position.set( 180, -180, 220 );
+	if(oldCamera){
+		oldCamera = JSON.parse(oldCamera)
+		let pos = oldCamera.position
+		if(pos)	camera.position.set( pos.x, pos.y, pos.z );
+	}
 	camera.up.set( 0, 0, 1 );
 
 	scene = new THREE.Scene();
@@ -93,6 +99,11 @@ function init() {
 
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
 	controls.target.set( 0, 0, 0 );
+	if(oldCamera){
+		let pos = oldCamera.target
+		if(pos) controls.target.set( pos.x, pos.y, pos.z );
+	}
+
 	controls.update();
 	controls.addEventListener('change',function(){
 		moveshouldRender()
@@ -144,6 +155,7 @@ function animate() {
 	firstRender = false
 	shouldRender = controls.autoRotate
     controls.update();
+    localStorage.setItem('camera', JSON.stringify({position:camera.position, target: controls.target}))
 	renderer.render( scene, camera );
 	if(time) {
 		firstRenderMsg = 'first render '+(performance.now() - time).toFixed(2)
@@ -335,8 +347,12 @@ function testWalnut(){
 	console.log('wMesh2',wMesh2)
 
 	let wResult = $w._AllocateMesh(geom1.vertices.length / 9)
+	
+	// let filterSuccess = $w._UnionMeshes(wMesh1, wMesh2, wResult)
+
 	$w._InvertMesh(wMesh2)
 	let filterSuccess = $w._SubtractMesh(wMesh1, wMesh2, wResult)
+
 	let result = toGeom(wResult)
 	console.log('filter result', filterSuccess, result)
 
