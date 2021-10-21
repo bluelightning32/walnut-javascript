@@ -17,6 +17,8 @@ target_link_options(walnut-javascript
           --extern-post-js=${CMAKE_CURRENT_SOURCE_DIR}/suffix.js)
 
 configure_file(example/index.html . COPYONLY)
+configure_file(example/jscad-modeling.min.js . COPYONLY)
+configure_file(example/jscad-modeling.min.js.map . COPYONLY)
 configure_file(example/main.css . COPYONLY)
 configure_file(example/Three.jscad.js . COPYONLY)
 configure_file(example/Three.jscad.js.map . COPYONLY)
