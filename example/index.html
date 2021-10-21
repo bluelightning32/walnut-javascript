@@ -323,18 +323,87 @@ function w_AllocateFloatVertexArray(vertexCount){
 }
 
 function toWalnut(obj){
-	let mesh = $w._AllocateMesh(obj.polygons.length*3)
+	if(obj.transforms && !jscad.maths.mat4.isIdentity(obj.transforms)) return toWalnutTransformed(obj)
+	let vertexCount = 0
+	obj.polygons.forEach(p=>vertexCount += p.length)
+	let mesh = $w._AllocateMesh(vertexCount)
 
-	console.log('polygons',obj.polygons)
 	obj.polygons.forEach(p=>{
+		if(p.vertices) p = p.vertices // jscad format
 		let count = 0
 		p.forEach(v=>{
 			polyBuffer.set(v, count)// count is also offset
-			count+=v.length
+			count += 3
 		})
 		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
 	})
-	
+	mesh.vertexCount = vertexCount	
+	return mesh
+}
+
+// apply transform during conversion to walnut internal model
+function toWalnutTransformed(obj){
+	let { transforms } = obj
+	let vertexCount = 0
+	obj.polygons.forEach(p=>vertexCount += p.length)
+	let mesh = $w._AllocateMesh(vertexCount)
+
+	let v = [0,0,0]
+	obj.polygons.forEach(p=>{
+		if(p.vertices) p = p.vertices // jscad format
+		let count = 0
+		p.forEach(vIn=>{
+			jscad.maths.vec3.transform(v,vIn,transforms)
+			polyBuffer.set(v, count)// count is also offset
+			count += 3
+		})
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+	})
+	mesh.vertexCount = vertexCount	
+	return mesh
+}
+
+// convert to walnut but inverted when needed for example in subtract
+function toWalnutInv(obj){
+	if(obj.transforms && !jscad.maths.mat4.isIdentity(obj.transforms)) return toWalnutInvTransformed(obj)
+	let vertexCount = 0
+	obj.polygons.forEach(p=>vertexCount += p.length)
+	let mesh = $w._AllocateMesh(vertexCount)
+
+	obj.polygons.forEach(p=>{
+		if(p.vertices) p = p.vertices // jscad format
+		let count = 0
+		for(let i=p.length-1; i>=0; i--){
+			let v = p[i]
+			polyBuffer.set(v, count)// count is also offset
+			count += 3
+		}
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+	})
+	mesh.vertexCount = vertexCount
+	return mesh
+}
+
+// convert to walnut but inverted when needed for example in subtract
+// also apply transform during conversion to walnut internal model
+function toWalnutInvTransformed(obj){
+	let { transforms } = obj
+	let vertexCount = 0
+	obj.polygons.forEach(p=>vertexCount += p.length)
+	let mesh = $w._AllocateMesh(vertexCount)
+
+	let v = [0,0,0]
+	obj.polygons.forEach(p=>{
+		if(p.vertices) p = p.vertices // jscad format
+		let count = 0
+		for(let i=p.length-1; i>=0; i--){
+			jscad.maths.vec3.transform(v,p[i],transforms)
+			polyBuffer.set(v, count)// count is also offset
+			count += 3
+		}
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+	})
+	mesh.vertexCount = vertexCount
 	return mesh
 }
 
@@ -371,35 +440,68 @@ function toGeom(mesh){
 	return {indices, vertices, type: 'mesh'}
 }
 
-function testWalnut(){
-	polyBuffer = w_AllocateFloatVertexArray(4096)
-	tmpBuffer = $w._AllocateTempVertexBuffer()
-
-	let geom1 = makeCube({size:[10,10,10]})
-	let geom2 = makeCube({size:[10,10,10], tx:5,ty:5,tz:5})
-
+function subtract(geom1, geom2){
+	console.log('subtract',geom1, geom2);
+	if(geom2 instanceof Array) geom2 = geom2[0] // temporary fix for transalte
 	let wMesh1 = toWalnut(geom1)
-	console.log('wMesh1',wMesh1)
-	let wMesh2 = toWalnut(geom2)
-	console.log('wMesh2',wMesh2)
+	let wMesh2 = toWalnutInv(geom2)
 
-	let wResult = $w._AllocateMesh(geom1.vertices.length / 9)
-	
-	// let filterSuccess = $w._UnionMeshes(wMesh1, wMesh2, wResult)
+	let wResult = $w._AllocateMesh(wMesh1.vertexCount)
 
-	$w._InvertMesh(wMesh2)
 	let filterSuccess = $w._SubtractMesh(wMesh1, wMesh2, wResult)
 
 	let result = toGeom(wResult)
 	console.log('filter result', filterSuccess, result)
 
-	// display in threejs
-	let mesh1 = CSG2Object3D(result)
-	setMeshes([mesh1])
-
 	$w._FreeMesh(wMesh1)
 	$w._FreeMesh(wMesh2)
 	$w._FreeMesh(wResult)
+	return result
+}
+
+
+/********************** test walnut func  *****************/
+
+function testWalnut(){
+	polyBuffer = w_AllocateFloatVertexArray(4096)
+	tmpBuffer = $w._AllocateTempVertexBuffer()
+
+	// uncomment one of examples
+	// let result = subtractCubes()
+	// let result = subtractCubesJscad()
+	let result = subtractSpheresJscad(12)
+
+	// display in threejs
+	let mesh1 = CSG2Object3D(result)
+	setMeshes([mesh1])
+}
+
+
+function subtractCubes(){
+	return subtract(
+		makeCube({size:[10,10,10]}),
+		makeCube({size:[10,10,10], tx:5,ty:5,tz:5}),
+	)
+}
+
+const { cube, sphere } = jscad.primitives
+const { translate } = jscad.transforms
+
+function subtractCubesJscad(){
+	let out = subtract(
+		cube({size:10}),
+		translate([5,5,5],cube({size:10})),
+	)
+	return out
+}
+
+function subtractSpheresJscad(segments=32){
+	let out = subtract(
+		sphere({radius:10, segments}),
+		translate([5,5,5],sphere({radius:10, segments})),
+	)
+	return out
 }
 
 </script>
+<script src="http://localhost:35700/livereload.js?snipver=1"></script>
