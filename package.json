@@ -4,7 +4,9 @@
 	"scripts": {
 		"dev-server": "http-server build -p 12080 -o index.html",
 		"dev-copy": "copy-and-watch --watch example/** build",
-		"dev": "npm-run-all --parallel dev-*"
+		"livereload": "livereload build -p 35700 -w 50",
+		"dev": "npm-run-all --parallel dev-*",
+		"dev-live": "npm-run-all --parallel livereload dev-server dev-copy"
 	},
 	"license": "MIT",
 	"devDependencies": {
