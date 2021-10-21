@@ -329,10 +329,10 @@ function toWalnut(obj){
 	obj.polygons.forEach(p=>{
 		let count = 0
 		p.forEach(v=>{
-			polyBuffer.set(p, count)// count is also offset
+			polyBuffer.set(v, count)// count is also offset
 			count+=v.length
 		})
-		$w._AddPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
 	})
 	
 	return mesh

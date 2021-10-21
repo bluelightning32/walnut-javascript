@@ -34,7 +34,12 @@ std::vector<MutableConvexPolygon<>>* EMSCRIPTEN_KEEPALIVE AllocateMesh(
 
 void EMSCRIPTEN_KEEPALIVE FreeMesh(std::vector<MutableConvexPolygon<>>* mesh);
 
-void EMSCRIPTEN_KEEPALIVE AddPolygonToMesh(
+void EMSCRIPTEN_KEEPALIVE AddFloatPolygonToMesh(
+    size_t source_vertex_count, const float* source_vertices,
+    std::vector<HomoPoint3>* temp_buffer,
+    std::vector<MutableConvexPolygon<>>* target, int min_exponent);
+
+void EMSCRIPTEN_KEEPALIVE AddDoublePolygonToMesh(
     size_t source_vertex_count, const double* source_vertices,
     std::vector<HomoPoint3>* temp_buffer,
     std::vector<MutableConvexPolygon<>>* target, int min_exponent);

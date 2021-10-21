@@ -109,25 +109,8 @@ void GetFloatTrianglesFromMesh(const std::vector<MutableConvexPolygon<>>* mesh,
   }
 }
 
-void AddPolygonToMesh(size_t source_vertex_count,
-                      const double* source_vertices,
-                      std::vector<HomoPoint3>* temp_buffer,
-                      std::vector<MutableConvexPolygon<>>* target,
-                      int min_exponent) {
-  temp_buffer->clear();
-  temp_buffer->reserve(source_vertex_count);
-  {
-    const double* source_vertices_end = source_vertices +
-                                        3 * source_vertex_count;
-    for (const double* pos = source_vertices; pos < source_vertices_end;
-         pos += 3) {
-      temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
-                                                     pos[0],
-                                                     pos[1],
-                                                     pos[2]));
-    }
-  }
-
+void AddPolygonToMesh(const std::vector<HomoPoint3>& source,
+                      std::vector<MutableConvexPolygon<>>& target) {
   class Collector : public ConvexPolygonFactory<HomoPoint3> {
    public:
     using ConvexPolygonFactory<HomoPoint3>::ConvexPolygonRep;
@@ -143,10 +126,54 @@ void AddPolygonToMesh(size_t source_vertex_count,
    private:
     std::vector<MutableConvexPolygon<>>& target_;
   };
-  Collector polygon_factory(*target);
+  Collector polygon_factory(target);
 
-  polygon_factory.Build(/*begin=*/temp_buffer->begin(),
-                        /*end=*/temp_buffer->end());
+  polygon_factory.Build(/*begin=*/source.begin(),
+                        /*end=*/source.end());
+}
+
+void AddDoublePolygonToMesh(size_t source_vertex_count,
+                            const double* source_vertices,
+                            std::vector<HomoPoint3>* temp_buffer,
+                            std::vector<MutableConvexPolygon<>>* target,
+                            int min_exponent) {
+  temp_buffer->clear();
+  temp_buffer->reserve(source_vertex_count);
+  {
+    const double* source_vertices_end = source_vertices +
+                                        3 * source_vertex_count;
+    for (const double* pos = source_vertices; pos < source_vertices_end;
+         pos += 3) {
+      temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
+                                                     pos[0],
+                                                     pos[1],
+                                                     pos[2]));
+    }
+  }
+
+  AddPolygonToMesh(*temp_buffer, *target);
+}
+
+void AddFloatPolygonToMesh(size_t source_vertex_count,
+                           const float* source_vertices,
+                           std::vector<HomoPoint3>* temp_buffer,
+                           std::vector<MutableConvexPolygon<>>* target,
+                           int min_exponent) {
+  temp_buffer->clear();
+  temp_buffer->reserve(source_vertex_count);
+  {
+    const float* source_vertices_end = source_vertices +
+                                        3 * source_vertex_count;
+    for (const float* pos = source_vertices; pos < source_vertices_end;
+         pos += 3) {
+      temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
+                                                     pos[0],
+                                                     pos[1],
+                                                     pos[2]));
+    }
+  }
+
+  AddPolygonToMesh(*temp_buffer, *target);
 }
 
 void InvertMesh(std::vector<MutableConvexPolygon<>>* mesh) {
