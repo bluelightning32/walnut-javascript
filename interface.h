@@ -52,6 +52,11 @@ void EMSCRIPTEN_KEEPALIVE InvertMesh(
     std::vector<MutableConvexPolygon<>>* mesh);
 
 // Returns true if successful
+bool EMSCRIPTEN_KEEPALIVE IdentityFilter(
+    const std::vector<MutableConvexPolygon<>>* source1,
+    std::vector<MutableConvexPolygon<>>* target);
+
+// Returns true if successful
 bool EMSCRIPTEN_KEEPALIVE UnionMeshes(
     const std::vector<MutableConvexPolygon<>>* source1,
     const std::vector<MutableConvexPolygon<>>* source2,
