@@ -335,7 +335,7 @@ function toWalnut(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		})
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
 	})
 	mesh.vertexCount = vertexCount	
 	return mesh
@@ -357,7 +357,7 @@ function toWalnutTransformed(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		})
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
 	})
 	mesh.vertexCount = vertexCount	
 	return mesh
@@ -378,7 +378,7 @@ function toWalnutInv(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		}
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
 	})
 	mesh.vertexCount = vertexCount
 	return mesh
@@ -401,7 +401,7 @@ function toWalnutInvTransformed(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		}
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -8)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
 	})
 	mesh.vertexCount = vertexCount
 	return mesh
@@ -419,7 +419,7 @@ function toWalnutOldVertexOnly(obj){
 
 	let triangleCount = vertexCount / 3
 	let mesh = $w._AllocateMesh(triangleCount)
-	$w._AddFloatTrianglesToMesh(triangleCount, vertexPointer, mesh, -8)
+	$w._AddFloatTrianglesToMesh(triangleCount, vertexPointer, mesh, -6)
 	$w._FreeFloatVertexArray(vertexPointer)
 	return mesh
 }
