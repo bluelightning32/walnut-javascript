@@ -461,7 +461,7 @@ function subtract(geom1, geom2){
 
 
 /********************** test walnut func  *****************/
-const PRECISION = -8
+const PRECISION = -10
 function testWalnut(){
 	polyBuffer = w_AllocateFloatVertexArray(4096)
 	tmpBuffer = $w._AllocateTempVertexBuffer()
@@ -469,8 +469,10 @@ function testWalnut(){
 	// uncomment one of examples
 	// let result = subtractCubes()
 	// let result = subtractCubesJscad()
-	let result = subtractSpheresJscad(22)// 66 max
-
+	let time = Date.now()	
+	console.log('generating model');
+	let result = subtractSpheresJscad(99)// 66 max
+	console.log('generating model done ',Date.now()-time);
 	// display in threejs
 	let mesh1 = CSG2Object3D(result)
 	setMeshes([mesh1])
