@@ -443,15 +443,22 @@ function toGeom(mesh){
 function subtract(geom1, geom2){
 	console.log('subtract',geom1, geom2);
 	if(geom2 instanceof Array) geom2 = geom2[0] // temporary fix for transalte
+	let time = Date.now()
 	let wMesh1 = toWalnut(geom1)
+	console.log('Mesh1 transfered to walnut ', Date.now() - time);
+	time = Date.now()
 	let wMesh2 = toWalnutInv(geom2)
+	console.log('Mesh1 transfered to walnut ', Date.now() - time);
 
 	let wResult = $w._AllocateMesh(wMesh1.vertexCount)
 
 	let filterSuccess = $w._SubtractMesh(wMesh1, wMesh2, wResult)
+	console.log('subtract ', Date.now() - time);
+	time = Date.now()
 
 	let result = toGeom(wResult)
 	console.log('filter result', filterSuccess, result)
+	console.log('toGeom ', Date.now() - time);
 
 	$w._FreeMesh(wMesh1)
 	$w._FreeMesh(wMesh2)
@@ -471,7 +478,7 @@ function testWalnut(){
 	// let result = subtractCubesJscad()
 	let time = Date.now()	
 	console.log('generating model');
-	let result = subtractSpheresJscad(99)// 66 max
+	let result = subtractSpheresJscad(66)// 66 max
 	console.log('generating model done ',Date.now()-time);
 	// display in threejs
 	let mesh1 = CSG2Object3D(result)
