@@ -335,7 +335,7 @@ function toWalnut(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		})
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, PRECISION)
 	})
 	mesh.vertexCount = vertexCount	
 	return mesh
@@ -357,7 +357,7 @@ function toWalnutTransformed(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		})
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, PRECISION)
 	})
 	mesh.vertexCount = vertexCount	
 	return mesh
@@ -378,7 +378,7 @@ function toWalnutInv(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		}
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, PRECISION)
 	})
 	mesh.vertexCount = vertexCount
 	return mesh
@@ -401,7 +401,7 @@ function toWalnutInvTransformed(obj){
 			polyBuffer.set(v, count)// count is also offset
 			count += 3
 		}
-		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, -6)
+		$w._AddFloatPolygonToMesh(count/3, polyBuffer.vertexPointer, tmpBuffer, mesh, PRECISION)
 	})
 	mesh.vertexCount = vertexCount
 	return mesh
@@ -419,7 +419,7 @@ function toWalnutOldVertexOnly(obj){
 
 	let triangleCount = vertexCount / 3
 	let mesh = $w._AllocateMesh(triangleCount)
-	$w._AddFloatTrianglesToMesh(triangleCount, vertexPointer, mesh, -6)
+	$w._AddFloatTrianglesToMesh(triangleCount, vertexPointer, mesh, PRECISION)
 	$w._FreeFloatVertexArray(vertexPointer)
 	return mesh
 }
@@ -461,7 +461,7 @@ function subtract(geom1, geom2){
 
 
 /********************** test walnut func  *****************/
-
+const PRECISION = -7
 function testWalnut(){
 	polyBuffer = w_AllocateFloatVertexArray(4096)
 	tmpBuffer = $w._AllocateTempVertexBuffer()
@@ -469,7 +469,7 @@ function testWalnut(){
 	// uncomment one of examples
 	// let result = subtractCubes()
 	// let result = subtractCubesJscad()
-	let result = subtractSpheresJscad(22)
+	let result = subtractSpheresJscad(22)// 66 max
 
 	// display in threejs
 	let mesh1 = CSG2Object3D(result)
