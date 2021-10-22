@@ -1,6 +1,14 @@
 
 
 
+## build walnut
+
+```
+git submodule update --recursive --remote
+cd build
+```
+
+
 
 ## dev env (javascript)
 
