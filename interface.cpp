@@ -120,6 +120,7 @@ void AddPolygonToMesh(const std::vector<HomoPoint3>& source,
 
    protected:
     void Emit(ConvexPolygonRep&& polygon) override {
+      polygon.ReducePlaneNormal();
       target_.push_back(std::move(polygon));
     }
 
