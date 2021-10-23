@@ -170,6 +170,3 @@ CSGToBuffers.clearCache = ()=>{
 }
 
 CSGToBuffers.clearCache()
-
-
-module.exports = {CSGToBuffers}
