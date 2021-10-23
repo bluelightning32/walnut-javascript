@@ -4,6 +4,8 @@
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<link type="text/css" rel="stylesheet" href="main.css?_8">
 	<script src="Three.jscad.js"></script>
+	<script src="CsgToBuffers.js"></script>
+	<script src="CSG2Object3D.js"></script>
 	<script src="jscad-modeling.min.js"></script>
 	<script src="walnut-javascript.js"></script>
 </head>
@@ -69,7 +71,7 @@ function init() {
 	// ground.rotation.x =  - Math.PI / 2;
 	// ground.rotation.y =  - Math.PI / 2;
 	ground.receiveShadow = SHADOW;
-	scene.add( ground );
+	//scene.add( ground );
 
 	grid = new THREE.GridHelper( 200, 20, 0x000000, 0x000000 );
 	grid.rotation.x = - Math.PI / 2;
@@ -181,52 +183,6 @@ function setVisible(id, v){
 	if(elem) elem.style.display = v ? 'initial':'none'
 	else console.log('setVisible: elem not found',id)
 }
-
-const flatShading = true
-const materials = {
-	mesh: {
-		def: new THREE.MeshPhongMaterial( { color: 0x0084d1, flatShading } ),
-		make: (params)=>new THREE.MeshPhongMaterial({flatShading, ...params}),
-	},
-	line: {
-		def: new THREE.LineBasicMaterial( { color: 0x0000ff } ),
-		make: ({color,opacity,transparent})=>new THREE.LineBasicMaterial({color,opacity,transparent}),
-	},
-  lines:null
-}
-materials.lines = materials.line			
-
-function CSG2Object3D(obj){
-	const {vertices, indices, color, transforms} = obj
-
-	let materialDef = materials[obj.type || 'mesh']
-	let material = materialDef.def
-	let isInstanced = obj.type == 'instances'
-	if(color && !isInstanced){
-		let c = color
-		material = materialDef.make({ color: CSG2Object3D.makeColor(color), flatShading, opacity: c[3] === void 0 ? 1:c[3], transparent: c[3] != 1 && c[3] !== void 0})
-	}
-
-	var geo = new THREE.BufferGeometry()
-	geo.setAttribute('position', new THREE.BufferAttribute(vertices,3))
-
-	var mesh;
-	switch(obj.type || 'mesh'){
-		case 'mesh': geo.setIndex(new THREE.BufferAttribute(indices,1)); mesh = new THREE.Mesh(geo, material); break;
-		case 'instances':
-			geo.setIndex(new THREE.BufferAttribute(indices,1))
-			mesh = new THREE.InstancedMesh(geo, materials.mesh.make( { color: 0x0084d1 } ))
-			transforms = null
-			break;
-		case 'line': mesh = new THREE.Line(geo, material); break;
-		case 'lines': mesh = new THREE.LineSegments(geo, material); break;
-	}
-	if(transforms && !isInstanced) mesh.applyMatrix4({elements:transforms})
-	return mesh
-}
-
-CSG2Object3D.makeColor = c=>new THREE.Color(c[0],c[1],c[2])
-CSG2Object3D.materials = materials
 
 function makeCube({size, tx=0, ty=0, tz=0}){
 	let vLen = 12
@@ -473,16 +429,25 @@ function testWalnut(){
 	polyBuffer = w_AllocateFloatVertexArray(4096)
 	tmpBuffer = $w._AllocateTempVertexBuffer()
 
+	subtract = jscad.booleans.subtract
+	let time = Date.now()	
+	console.log('generating model');
 	// uncomment one of examples
 	// let result = subtractCubes()
 	// let result = subtractCubesJscad()
-	let time = Date.now()	
-	console.log('generating model');
-	let result = subtractSpheresJscad(66)// 66 max
-	console.log('generating model done ',Date.now()-time);
+	// let result = subtractSpheresJscad(66)// 66 max
+	let result = createSingleBalloon({age:7})
 	// display in threejs
-	let mesh1 = CSG2Object3D(result)
-	setMeshes([mesh1])
+	if(!(result instanceof Array)) result = [result]
+	result = jscad.utils.flatten(result)
+	console.log('generating model done ',Date.now()-time, result);
+	let meshes = result.map(csg=>{
+		if(!csg.type){
+			csg = CSGToBuffers(csg)
+		}
+		return CSG2Object3D(csg)
+	})
+	setMeshes(meshes)
 }
 
 
@@ -493,8 +458,17 @@ function subtractCubes(){
 	)
 }
 
-const { cube, sphere } = jscad.primitives
-const { translate } = jscad.transforms
+const { union } = jscad.booleans
+const { colorize, hexToRgb } = jscad.colors
+const { expand } = jscad.expansions
+const { extrudeFromSlices, extrudeLinear, slice } = jscad.extrusions
+const { geom2 } = jscad.geometries
+const { hullChain } = jscad.hulls
+const { mat4 } = jscad.maths
+const { measureBoundingBox } = jscad.measurements
+const { circle, ellipsoid, line } = jscad.primitives
+const { vectorText } = jscad.text
+const { translate, scale, rotateX, center } = jscad.transforms
 
 function subtractCubesJscad(){
 	let out = subtract(
@@ -511,6 +485,57 @@ function subtractSpheresJscad(segments=32){
 	)
 	return out
 }
+
+/* ***************************************************************** */
+// extracted from https://github.com/jscad/OpenJSCAD.org/issues/907
+// Build text by creating the font strokes (2D), then extruding up (3D).
+const text = (message, extrusionHeight, characterLineWidth) => {
+  if (message === undefined || message.length === 0) return []
+
+  const lineRadius = characterLineWidth / 2
+  const lineCorner = circle({ radius: lineRadius })
+
+  const lineSegmentPointArrays = vectorText({ x: 0, y: 0, input: message }) // line segments for each character
+  const lineSegments = []
+  lineSegmentPointArrays.forEach((segmentPoints) => { // process the line segment
+    const corners = segmentPoints.map((point) => translate(point, lineCorner))
+    lineSegments.push(hullChain(corners))
+  })
+  const message2D = union(lineSegments)
+  const message3D = extrudeLinear({ height: extrusionHeight }, message2D)
+  return center({ axes: [true, true, false] }, message3D)
+}
+
+const createSingleBalloon = (params) => {
+  const options = { segments: 32, b_radius:10, b_color:'#FFB431' }
+  let t = rotateX(Math.PI / 2, text(params.age.toString(), 2, 2))
+  let m = measureBoundingBox(t)
+  let x = (options.b_radius * 0.70) / Math.max(m[1][0], m[1][2])
+  let y = options.b_radius * 3
+  let z = x
+  t = translate([0, y / 2, 0], scale([x, y, z], t))
+
+  const b = ellipsoid({
+    radius: [options.b_radius, options.b_radius, options.b_radius],
+    segments: options.segments
+  })
+  return subtract(b, t)
+}
+
+const createRope = (to) => {
+  const base = slice.fromSides(geom2.toSides(circle({ radius: 0.25 })))
+  const rope = extrudeFromSlices({
+    callback: (p, i, b) => {
+      if (i === 1) {
+        const matrix = mat4.fromTranslation(mat4.create(), to)
+        b = slice.transform(matrix, b)
+      }
+      return b
+    }
+  }, base)
+  return colorize([0, 0, 0], rope)
+}
+
 
 </script>
 <script src="http://localhost:35700/livereload.js?snipver=1"></script>
