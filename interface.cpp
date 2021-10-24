@@ -44,6 +44,14 @@ void FreeTempVertexBuffer(std::vector<HomoPoint3>* v) {
   delete v;
 }
 
+MeshPlaneRepairer<>* AllocateMeshRepairer() {
+  return new MeshPlaneRepairer<>();
+}
+
+void FreeMeshRepairer(MeshPlaneRepairer<>* repairer) {
+  delete repairer;
+}
+
 std::vector<MutableConvexPolygon<>>* AllocateMesh(size_t min_size) {
   auto result = std::make_unique<std::vector<MutableConvexPolygon<>>>();
   result->reserve(min_size);
@@ -131,6 +139,71 @@ void AddPolygonToMesh(const std::vector<HomoPoint3>& source,
 
   polygon_factory.Build(/*begin=*/source.begin(),
                         /*end=*/source.end());
+}
+
+void AddDoublePolygonToMeshRepairer(size_t source_vertex_count,
+                                    const double* source_vertices,
+                                    MeshPlaneRepairer<>* repairer,
+                                    int min_exponent) {
+  const double* source_vertices_end = source_vertices +
+                                      3 * source_vertex_count;
+  for (const double* pos = source_vertices; pos < source_vertices_end;
+       pos += 3) {
+    repairer->AddVertex(HomoPoint3::FromDoubles(min_exponent,
+                                                pos[0],
+                                                pos[1],
+                                                pos[2]));
+  }
+  repairer->FinishFacet();
+}
+
+void AddFloatPolygonToMeshRepairer(size_t source_vertex_count,
+                                   const float* source_vertices,
+                                   MeshPlaneRepairer<>* repairer,
+                                   int min_exponent) {
+  const float* source_vertices_end = source_vertices +
+                                      3 * source_vertex_count;
+  for (const float* pos = source_vertices; pos < source_vertices_end;
+       pos += 3) {
+    repairer->AddVertex(HomoPoint3::FromDoubles(min_exponent,
+                                                pos[0],
+                                                pos[1],
+                                                pos[2]));
+  }
+  repairer->FinishFacet();
+}
+
+void FinalizeMeshFromRepairer(MeshPlaneRepairer<>* repairer,
+                              std::vector<MutableConvexPolygon<>>* target) {
+  class Collector : public ConvexPolygonFactory<HomoPoint3> {
+   public:
+    using ConvexPolygonFactory<HomoPoint3>::ConvexPolygonRep;
+
+    Collector(std::vector<MutableConvexPolygon<>>& target)
+      : target_(target) { }
+
+   protected:
+    void Emit(ConvexPolygonRep&& polygon) override {
+      polygon.ReducePlaneNormal();
+      target_.push_back(std::move(polygon));
+    }
+
+   private:
+    std::vector<MutableConvexPolygon<>>& target_;
+  };
+  Collector polygon_factory(*target);
+
+  MeshPlaneRepairerProducer<> producer = std::move(*repairer).FinalizeMesh();
+  while (producer.HasMorePolygons()) {
+    using VertexIterator = MeshPlaneRepairerProducer<>::VertexIterator;
+    VertexIterator first, last;
+    HalfSpace3 plane(producer.GetNextPolygon(first, last));
+    for (auto it = first; it != last; ++it) {
+      assert(plane.IsCoincident(*it));
+    }
+    polygon_factory.Build(std::move(plane), first, last);
+  }
+  repairer->Clear();
 }
 
 void AddDoublePolygonToMesh(size_t source_vertex_count,

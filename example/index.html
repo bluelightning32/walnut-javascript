@@ -297,6 +297,33 @@ function toWalnut(obj){
 	return mesh
 }
 
+// The MeshPlaneRepairer is supposed to fix the quads so that they are planar
+// to prevent them from getting split into 2 triangles. Unfortunately, that ends
+// up being slower to process in the BSP, because fixing the quads makes the
+// numerater and denominator of the rationals larger.
+function toWalnutUsingMeshRepairer(obj){
+	let meshRepairer = $w._AllocateMeshRepairer()
+	if(obj.transforms && !jscad.maths.mat4.isIdentity(obj.transforms)) return toWalnutTransformed(obj)
+	let vertexCount = 0
+	obj.polygons.forEach(p=>vertexCount += p.length)
+
+	obj.polygons.forEach(p=>{
+		if(p.vertices) p = p.vertices // jscad format
+		let count = 0
+		p.forEach(v=>{
+			polyBuffer.set(v, count)// count is also offset
+			count += 3
+		})
+		$w._AddFloatPolygonToMeshRepairer(count/3, polyBuffer.vertexPointer, meshRepairer, PRECISION)
+	})
+
+	let mesh = $w._AllocateMesh(vertexCount)
+	$w._FinalizeMeshFromRepairer(meshRepairer, mesh)
+        $w._FreeMeshRepairer()
+	mesh.vertexCount = vertexCount
+	return mesh
+}
+
 // apply transform during conversion to walnut internal model
 function toWalnutTransformed(obj){
 	let { transforms } = obj
@@ -466,7 +493,7 @@ const { geom2 } = jscad.geometries
 const { hullChain } = jscad.hulls
 const { mat4 } = jscad.maths
 const { measureBoundingBox } = jscad.measurements
-const { circle, ellipsoid, line } = jscad.primitives
+const { circle, ellipsoid, line, sphere } = jscad.primitives
 const { vectorText } = jscad.text
 const { translate, scale, rotateX, center } = jscad.transforms
 

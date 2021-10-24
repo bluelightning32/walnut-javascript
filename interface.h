@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "walnut/homo_point3.h"
+#include "walnut/mesh_plane_repairer.h"
 #include "walnut/mutable_convex_polygon.h"
 
 namespace walnut {
@@ -29,6 +30,10 @@ std::vector<HomoPoint3>* EMSCRIPTEN_KEEPALIVE AllocateTempVertexBuffer();
 
 void EMSCRIPTEN_KEEPALIVE FreeTempVertexBuffer(std::vector<HomoPoint3>* v);
 
+MeshPlaneRepairer<>* EMSCRIPTEN_KEEPALIVE AllocateMeshRepairer();
+
+void EMSCRIPTEN_KEEPALIVE FreeMeshRepairer(MeshPlaneRepairer<>* repairer);
+
 std::vector<MutableConvexPolygon<>>* EMSCRIPTEN_KEEPALIVE AllocateMesh(
     size_t min_size);
 
@@ -47,6 +52,18 @@ void EMSCRIPTEN_KEEPALIVE AddDoublePolygonToMesh(
 void EMSCRIPTEN_KEEPALIVE AddFloatTrianglesToMesh(
     size_t triangle_count, const float* triangle_vertices,
     std::vector<MutableConvexPolygon<>>* target, int min_exponent);
+
+void EMSCRIPTEN_KEEPALIVE AddDoublePolygonToMeshRepairer(
+    size_t source_vertex_count, const double* source_vertices,
+    MeshPlaneRepairer<>* repairer, int min_exponent);
+
+void EMSCRIPTEN_KEEPALIVE AddFloatPolygonToMeshRepairer(
+    size_t source_vertex_count, const float* source_vertices,
+    MeshPlaneRepairer<>* repairer, int min_exponent);
+
+void EMSCRIPTEN_KEEPALIVE FinalizeMeshFromRepairer(
+    MeshPlaneRepairer<>* repairer,
+    std::vector<MutableConvexPolygon<>>* target);
 
 void EMSCRIPTEN_KEEPALIVE InvertMesh(
     std::vector<MutableConvexPolygon<>>* mesh);
