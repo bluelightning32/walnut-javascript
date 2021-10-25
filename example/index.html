@@ -499,8 +499,8 @@ function testMultiple(){
 
 function subtractCubes(subtract){
 	return subtract(
-		makeCube({size:[10,10,10]}),
-		makeCube({size:[10,10,10], tx:5,ty:5,tz:5}),
+		cube({size:10}),
+		translate([5,5,5],cube({size:10})),
 	)
 }
 
