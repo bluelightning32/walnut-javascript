@@ -138,7 +138,19 @@ function clearScene(){
 
 function setMeshes(_meshes){
 	clearScene()
-	_meshes.forEach(m=>{
+	addMeshes(_meshes)
+}
+
+function addMeshes(_meshes, transform){
+	_meshes.map(csg=>{
+		console.log('csg',csg);
+		if(!csg.type){
+			let {transforms,color} = csg
+			csg = {...CSGToBuffers(csg), transforms, color}
+		}
+		return CSG2Object3D(csg)
+	}).forEach(m=>{
+		console.log('m',m);
 		scene.add(m)
 		meshes.push(m)
 	})
@@ -423,8 +435,8 @@ function toGeom(mesh){
 	return {indices, vertices, type: 'mesh'}
 }
 
-function subtract(geom1, geom2){
-	console.log('subtract',geom1, geom2);
+function subtractWalnut(geom1, geom2){
+	console.log('subtractWalnut',geom1, geom2);
 	if(geom2 instanceof Array) geom2 = geom2[0] // temporary fix for transalte
 	let time = Date.now()
 	let wMesh1 = toWalnut(geom1)
@@ -456,36 +468,53 @@ function testWalnut(){
 	polyBuffer = w_AllocateFloatVertexArray(4096)
 	tmpBuffer = $w._AllocateTempVertexBuffer()
 
-	subtract = jscad.booleans.subtract
 	let time = Date.now()	
 	console.log('generating model');
 	// uncomment one of examples
-	// let result = subtractCubes()
-	// let result = subtractCubesJscad()
-	// let result = subtractSpheresJscad(66)// 66 max
-	let result = createSingleBalloon({age:7})
+	// let result = subtractCubes(subtract)
+	// let result = subtractCubes(subtractWalnut)
+	// let result = subtractSpheres(subtract, 66)
+	// let result = subtractSpheres(subtractWalnut, 66)
+	// let result = createSingleBalloon(subtract, {age:7})
+	// let result = createSingleBalloon(subtractWalnut, {age:7})
+	let result = testMultiple()
 	// display in threejs
 	if(!(result instanceof Array)) result = [result]
 	result = jscad.utils.flatten(result)
 	console.log('generating model done ',Date.now()-time, result);
-	let meshes = result.map(csg=>{
-		if(!csg.type){
-			csg = CSGToBuffers(csg)
-		}
-		return CSG2Object3D(csg)
-	})
-	setMeshes(meshes)
+	setMeshes(result)
+}
+
+function testMultiple(){
+	return [
+		translateAny([ 0,   0,0], subtractCubes(subtract)),
+		makeRed(translateAny([ 0,  20,0], subtractCubes(subtractWalnut))),
+		translateAny([-20,  0,0], subtractSpheres(subtract, 22)),
+		makeRed(translateAny([-20, 20,0], subtractSpheres(subtractWalnut, 22))),
+		translateAny([ 20,  0,0], createSingleBalloon(subtract,{age:7})),
+		makeRed(translateAny([ 20, 20,0], createSingleBalloon(subtractWalnut,{age:7}))),
+	]
 }
 
 
-function subtractCubes(){
+function subtractCubes(subtract){
 	return subtract(
 		makeCube({size:[10,10,10]}),
 		makeCube({size:[10,10,10], tx:5,ty:5,tz:5}),
 	)
 }
 
-const { union } = jscad.booleans
+function subtractSpheres(subtract, segments=32){
+	let out = subtract(
+		sphere({radius:10, segments}),
+		translate([5,5,5],sphere({radius:10, segments})),
+	)
+	return out
+}
+
+function makeRed(geom){ return {...geom, color:[0.7,0.1,0.05]}}
+
+const { union, subtract } = jscad.booleans
 const { colorize, hexToRgb } = jscad.colors
 const { expand } = jscad.expansions
 const { extrudeFromSlices, extrudeLinear, slice } = jscad.extrusions
@@ -493,25 +522,19 @@ const { geom2 } = jscad.geometries
 const { hullChain } = jscad.hulls
 const { mat4 } = jscad.maths
 const { measureBoundingBox } = jscad.measurements
-const { circle, ellipsoid, line, sphere } = jscad.primitives
+const { circle, ellipsoid, line, sphere, cube } = jscad.primitives
 const { vectorText } = jscad.text
 const { translate, scale, rotateX, center } = jscad.transforms
 
-function subtractCubesJscad(){
-	let out = subtract(
-		cube({size:10}),
-		translate([5,5,5],cube({size:10})),
-	)
+function translateAny(trans, geom){
+	if(geom instanceof Array) return geom.map(g=>translate(trans,g))
+
+	let out = {...geom}
+	out.transforms = mat4.translate([], geom.transforms || mat4.create(), trans)
+	console.log('out',out);
 	return out
 }
 
-function subtractSpheresJscad(segments=32){
-	let out = subtract(
-		sphere({radius:10, segments}),
-		translate([5,5,5],sphere({radius:10, segments})),
-	)
-	return out
-}
 
 /* ***************************************************************** */
 // extracted from https://github.com/jscad/OpenJSCAD.org/issues/907
@@ -533,7 +556,7 @@ const text = (message, extrusionHeight, characterLineWidth) => {
   return center({ axes: [true, true, false] }, message3D)
 }
 
-const createSingleBalloon = (params) => {
+const createSingleBalloon = (subtract, params) => {
   const options = { segments: 32, b_radius:10, b_color:'#FFB431' }
   let t = rotateX(Math.PI / 2, text(params.age.toString(), 2, 2))
   let m = measureBoundingBox(t)
@@ -547,20 +570,6 @@ const createSingleBalloon = (params) => {
     segments: options.segments
   })
   return subtract(b, t)
-}
-
-const createRope = (to) => {
-  const base = slice.fromSides(geom2.toSides(circle({ radius: 0.25 })))
-  const rope = extrudeFromSlices({
-    callback: (p, i, b) => {
-      if (i === 1) {
-        const matrix = mat4.fromTranslation(mat4.create(), to)
-        b = slice.transform(matrix, b)
-      }
-      return b
-    }
-  }, base)
-  return colorize([0, 0, 0], rope)
 }
 
 
