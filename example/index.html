@@ -24,11 +24,12 @@ let shouldRender = Date.now()
 let lastRender = true
 let firstRender = true
 let jscad = jscadModeling
-let $w = walnutJavascript
-$w.onRuntimeInitialized = ()=>{
-	console.log('walnutJavascript.onRuntimeInitialized')
-	testWalnut();
-}
+let $w = null
+walnutJavascript().then(function (w) {
+    $w = w
+    console.log('walnutJavascript.onRuntimeInitialized')
+    testWalnut();
+  })
 init();
 animate();
 

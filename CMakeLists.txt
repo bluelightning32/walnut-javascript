@@ -13,9 +13,11 @@ set_target_properties(walnut-javascript PROPERTIES
                       PUBLIC_HEADER "interface.h")
 target_link_libraries(walnut-javascript walnut)
 target_link_options(walnut-javascript
-  PRIVATE --extern-pre-js=${CMAKE_CURRENT_SOURCE_DIR}/prefix.js
-          --extern-post-js=${CMAKE_CURRENT_SOURCE_DIR}/suffix.js
-          -s INITIAL_MEMORY=1610612736)
+  PRIVATE
+  "SHELL:-s INITIAL_MEMORY=1610612736"
+  "SHELL:-s MODULARIZE=1"
+  "SHELL:-s EXPORT_NAME=walnutJavascript"
+  )
 
 configure_file(example/CSG2Object3D.js . COPYONLY)
 configure_file(example/CsgToBuffers.js . COPYONLY)
