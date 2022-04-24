@@ -7,7 +7,7 @@
 	<script src="CsgToBuffers.js"></script>
 	<script src="CSG2Object3D.js"></script>
 	<script src="jscad-modeling.min.js"></script>
-	<script src="walnut-javascript.js"></script>
+	<script src="walnut.js"></script>
 </head>
 <body>
 <div id="renderIndicator">R</div>
@@ -25,9 +25,9 @@ let lastRender = true
 let firstRender = true
 let jscad = jscadModeling
 let $w = null
-walnutJavascript().then(function (w) {
+walnut().then(function (w) {
     $w = w
-    console.log('walnutJavascript.onRuntimeInitialized')
+    console.log('walnut.onRuntimeInitialized')
     testWalnut();
   })
 init();

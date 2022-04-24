@@ -7,16 +7,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(WALNUT_USE_VTK OFF CACHE BOOL "Build targets that depend on VTK")
 add_subdirectory(walnut EXCLUDE_FROM_ALL)
 
-#add_library(walnut-javascript STATIC interface.cpp)
 add_executable(walnut-javascript interface.cpp)
 set_target_properties(walnut-javascript PROPERTIES
-                      PUBLIC_HEADER "interface.h")
+                      PUBLIC_HEADER "interface.h"
+                      OUTPUT_NAME "walnut")
 target_link_libraries(walnut-javascript walnut)
 target_link_options(walnut-javascript
   PRIVATE
   "SHELL:-s INITIAL_MEMORY=1610612736"
   "SHELL:-s MODULARIZE=1"
-  "SHELL:-s EXPORT_NAME=walnutJavascript"
+  "SHELL:-s EXPORT_NAME=walnut"
   )
 
 configure_file(example/CSG2Object3D.js . COPYONLY)
