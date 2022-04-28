@@ -8,6 +8,55 @@
 
 namespace walnut {
 
+constexpr bool is_power_of_2(size_t i) {
+  while (i > 1) {
+    i /= 2;
+  }
+  return i == 1;
+}
+
+class OffsetCalculator {
+ public:
+  OffsetCalculator() : offset_(0) { }
+
+  template <typename T>
+  void Align() {
+    static_assert(
+        is_power_of_2(alignof(T)),
+        "OffsetCalculator only works for types with a power of 2 alignment.");
+    static_assert(
+        sizeof(T) % alignof(T) == 0,
+        "The size of the type must be a multiple of the type's alignment, "
+        "because OffsetCalculator does not insert padding between elements of "
+        "an array.");
+    offset_ += alignof(T) - 1;
+    offset_ &= ~(alignof(T) - 1);
+  }
+
+  template <typename T>
+  void Append(size_t count) {
+    offset_ += sizeof(T) * count;
+  }
+  constexpr size_t offset() const {
+    return offset_;
+  }
+
+ private:
+  size_t offset_;
+};
+
+OutputBuffer::~OutputBuffer() {
+  free(data);
+}
+
+void OutputBuffer::EnsureCapacity(size_t required) {
+  if (capacity < required) {
+    free(data);
+    data = reinterpret_cast<char *>(std::malloc(required));
+    capacity = required;
+  }
+}
+
 float* AllocateFloatVertexArray(size_t max_vertices) {
   return reinterpret_cast<float*>(
       std::malloc(sizeof(float) * max_vertices * 3));
@@ -383,7 +432,7 @@ size_t GetPolygonVertexCount(const std::vector<MutableConvexPolygon<>>* mesh,
   return (*mesh)[polygon_index].vertex_count();
 }
 
-void EMSCRIPTEN_KEEPALIVE GetPolygonVertices(
+void GetPolygonVertices(
     const std::vector<MutableConvexPolygon<>>* mesh, size_t polygon_index,
     double* output_vertices) {
   const MutableConvexPolygon<>& polygon = (*mesh)[polygon_index];
@@ -394,6 +443,64 @@ void EMSCRIPTEN_KEEPALIVE GetPolygonVertices(
     output_vertices[i + 1] = v.y;
     output_vertices[i + 2] = v.z;
   }
+}
+
+DoublePolygonArray* GetDoublePolygonArrayFromMesh(
+    const std::vector<MutableConvexPolygon<>>* mesh,
+    DoublePolygonArray* output) {
+  if (output == nullptr) {
+    output = new DoublePolygonArray;
+  }
+  {
+    OffsetCalculator size;
+    size.Align<DoublePlane>();
+    size.Append<DoublePlane>(mesh->size());
+    size.Align<size_t>();
+    size.Append<size_t>(mesh->size());
+    size.Align<DoublePoint3>();
+    for (auto it = mesh->begin(); it != mesh->end(); ++it) {
+      size.Append<DoublePoint3>(it->vertex_count());
+    }
+    output->buffer.EnsureCapacity(size.offset());
+  }
+
+  output->polygon_count = mesh->size();
+  OffsetCalculator offset;
+  offset.Align<DoublePlane>();
+  output->planes =
+    reinterpret_cast<DoublePlane*>(output->buffer.data + offset.offset());
+  offset.Append<DoublePlane>(mesh->size());
+  offset.Align<size_t>();
+  output->vertex_counts =
+    reinterpret_cast<size_t*>(output->buffer.data + offset.offset());
+  offset.Append<size_t>(mesh->size());
+  offset.Align<DoublePoint3>();
+  output->vertices =
+    reinterpret_cast<DoublePoint3*>(output->buffer.data + offset.offset());
+
+  size_t polygon_index = 0;
+  size_t vertex_index = 0;
+  for (auto it = mesh->begin(); it != mesh->end(); ++it, ++polygon_index) {
+    const HalfSpace3& input_plane = it->plane();
+    DoublePlane& output_plane = output->planes[polygon_index];
+    output_plane.x = (double)input_plane.x();
+    output_plane.y = (double)input_plane.y();
+    output_plane.z = (double)input_plane.z();
+    output_plane.d = (double)input_plane.d();
+
+    output->vertex_counts[polygon_index] = it->vertex_count();
+    for (auto vertex_it = it->vertices_begin();
+         vertex_it != it->vertices_end();
+         ++vertex_it) {
+      output->vertices[vertex_index] = vertex_it->GetDoublePoint3();
+      vertex_index++;
+    }
+  }
+  return output;
+}
+
+void FreeDoublePolygonArray(DoublePolygonArray* array) {
+  delete array;
 }
 
 } // walnut

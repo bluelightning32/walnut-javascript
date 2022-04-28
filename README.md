@@ -4,12 +4,13 @@
 
 ```
 $ git submodule update --recursive --init
-$ cd build
+$ mkdir release
+$ cd release
 $ emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
 $ make -j4
 ```
 
-## Running via emrun
+## Running the example via emrun
 `emrun` is included in the `emsdk`. It starts up a web server to view the example. After building, from the `build` directory, run
 ```
 $ emrun index.html
