@@ -171,11 +171,16 @@ void EMSCRIPTEN_KEEPALIVE FreeDoublePolygonArray(DoublePolygonArray* array);
 // `min_exponent` that is less than or equal to the minimum double exponent:
 // -1024.
 //
+// If `flip` is true, the added polygon will have its vertices reversed (starts
+// from the last vertex in `source_vertices` and goes to the first). This
+// should be set to true if the polyhedron is going to be used as a subtrahend.
+//
 // If `tree` is null, a new tree is allocated. In either case, the target tree
 // is returned. Every allocated tree should be freed with `FreeTree`.
 BSPTree<>* EMSCRIPTEN_KEEPALIVE AddDoublePolygonToTree(
     BSPContentId id, size_t source_vertex_count, const double* source_vertices,
-    int min_exponent, std::vector<HomoPoint3>* temp_buffer, BSPTree<>* tree);
+    int min_exponent, bool flip, std::vector<HomoPoint3>* temp_buffer,
+    BSPTree<>* tree);
 
 void EMSCRIPTEN_KEEPALIVE FreeTree(BSPTree<>* tree);
 
@@ -201,6 +206,53 @@ void EMSCRIPTEN_KEEPALIVE FreeIdArray(BSPContentId* ids);
 // `FreeDoublePolygonArray`. The returned `DoublePolygonArray` may be reused
 // before freeing it.
 DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output);
+
+// Union the meshes in `tree` idenified by `ids`.
+//
+// The polyhedrons should be added to `tree` before calling this function,
+// using `AddDoublePolygonToTree`. This function may subdivide polygons within
+// `tree`, but `tree` will still represent the same polyhedrons when the
+// function ends.
+//
+// Any polyhedrons that happen to be in `tree` with an id not in `ids` are
+// ignored.
+//
+// This returns a pointer to the output `DoublePolygonArray`. If the passed in
+// `output` is non-null, it is used as the output buffer and returned.
+// Otherwise a new `DoublePolygonArray` is allocated and returned.
+//
+// The returned `DoublePolygonArray` must be freed exactly once using
+// `FreeDoublePolygonArray`. The returned `DoublePolygonArray` may be reused
+// before freeing it.
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE UnionInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output);
+
+// Subtract some meshes in `tree` from another mesh in `tree`.
+//
+// The minuend is identified by `ids[0]`. It should be added to `tree` before
+// calling this function, using `AddDoublePolygonToTree`.
+//
+// The subtrahends are identified by `&ids[1]`. They must be added to `tree`
+// beforehand as inverted polyhedrons, such as through `AddDoublePolygonToTree`
+// with `flip` set to true.
+//
+// This function may subdivide facets within `tree`, but `tree` will still
+// represent the same polyhedrons when the function ends.
+//
+// Any polyhedrons that happen to be in `tree` with an id not in `ids` are
+// ignored.
+//
+// This returns a pointer to the output `DoublePolygonArray`. If the passed in
+// `output` is non-null, it is used as the output buffer and returned.
+// Otherwise a new `DoublePolygonArray` is allocated and returned.
+//
+// The returned `DoublePolygonArray` must be freed exactly once using
+// `FreeDoublePolygonArray`. The returned `DoublePolygonArray` may be reused
+// before freeing it.
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE SubtractInTree(
     BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
     DoublePolygonArray* output);
 

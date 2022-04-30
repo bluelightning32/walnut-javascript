@@ -539,23 +539,31 @@ void AddPolygonToTree(BSPContentId id,
 }
 
 BSPTree<>* AddDoublePolygonToTree(BSPContentId id, size_t source_vertex_count,
-                            const double* source_vertices,
-                            int min_exponent,
-                            std::vector<HomoPoint3>* temp_buffer,
-                            BSPTree<>* tree) {
+                                  const double* source_vertices,
+                                  int min_exponent,
+                                  bool flip,
+                                  std::vector<HomoPoint3>* temp_buffer,
+                                  BSPTree<>* tree) {
   if (tree == nullptr) {
     tree = new BSPTree<>;
   }
   temp_buffer->clear();
   temp_buffer->reserve(source_vertex_count);
-  {
-    const double* source_vertices_end = source_vertices +
-                                        3 * source_vertex_count;
+  const double* source_vertices_end = source_vertices +
+                                      3 * source_vertex_count;
+  if (flip) {
+    const double* pos = source_vertices_end;
+    while (pos != source_vertices) {
+      pos -= 3;
+      temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
+                                                     pos[0],
+                                                     pos[1],
+                                                     pos[2]));
+    }
+  } else {
     for (const double* pos = source_vertices; pos < source_vertices_end;
          pos += 3) {
       temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
-
-
                                                      pos[0],
                                                      pos[1],
                                                      pos[2]));
@@ -587,6 +595,38 @@ DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
   };
 
   IntersectIdsFilter filter(std::vector<BSPContentId>(ids, ids + id_count));
+  ConnectingVisitor<BooleanOperationFilter> visitor(filter, error_log);
+  tree->Traverse(visitor);
+  visitor.FilterEmptyPolygons();
+
+  return GetDoublePolygonArrayFromMeshTemplated(&visitor.polygons(), output);
+}
+
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE UnionInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output) {
+
+  auto error_log = [](const std::string& error) {
+    std::cerr << "Walnut error: " << error << std::endl;
+  };
+
+  UnionIdsFilter filter(std::vector<BSPContentId>(ids, ids + id_count));
+  ConnectingVisitor<BooleanOperationFilter> visitor(filter, error_log);
+  tree->Traverse(visitor);
+  visitor.FilterEmptyPolygons();
+
+  return GetDoublePolygonArrayFromMeshTemplated(&visitor.polygons(), output);
+}
+
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE SubtractInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output) {
+
+  auto error_log = [](const std::string& error) {
+    std::cerr << "Walnut error: " << error << std::endl;
+  };
+
+  SubtractIdsFilter filter(std::vector<BSPContentId>(ids, ids + id_count));
   ConnectingVisitor<BooleanOperationFilter> visitor(filter, error_log);
   tree->Traverse(visitor);
   visitor.FilterEmptyPolygons();

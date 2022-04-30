@@ -1,6 +1,6 @@
 {
   "name": "@bluelightning32/walnut",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "The Walnut 3D boolean operation library compiled with WASM.",
   "main": "release/walnut.js",
   "files": [
