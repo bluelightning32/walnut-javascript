@@ -586,7 +586,7 @@ void FreeIdArray(BSPContentId* ids) {
   delete[] ids;
 }
 
-DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
+DoublePolygonArray* IntersectInTree(
     BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
     DoublePolygonArray* output) {
 
@@ -602,7 +602,7 @@ DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
   return GetDoublePolygonArrayFromMeshTemplated(&visitor.polygons(), output);
 }
 
-DoublePolygonArray* EMSCRIPTEN_KEEPALIVE UnionInTree(
+DoublePolygonArray* UnionInTree(
     BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
     DoublePolygonArray* output) {
 
@@ -618,7 +618,7 @@ DoublePolygonArray* EMSCRIPTEN_KEEPALIVE UnionInTree(
   return GetDoublePolygonArrayFromMeshTemplated(&visitor.polygons(), output);
 }
 
-DoublePolygonArray* EMSCRIPTEN_KEEPALIVE SubtractInTree(
+DoublePolygonArray* SubtractInTree(
     BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
     DoublePolygonArray* output) {
 
