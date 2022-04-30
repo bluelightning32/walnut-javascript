@@ -4,6 +4,7 @@
 #include <emscripten/emscripten.h>
 #include <vector>
 
+#include "walnut/bsp_tree.h"
 #include "walnut/homo_point3.h"
 #include "walnut/mesh_plane_repairer.h"
 #include "walnut/mutable_convex_polygon.h"
@@ -152,6 +153,56 @@ DoublePolygonArray* EMSCRIPTEN_KEEPALIVE GetDoublePolygonArrayFromMesh(
     DoublePolygonArray* output);
 
 void EMSCRIPTEN_KEEPALIVE FreeDoublePolygonArray(DoublePolygonArray* array);
+
+// Adds a polygon to `tree`.
+//
+// This function should be called once for every polygon in the polyhedron that
+// the caller wants to add to the tree. That polyhedron should be identified by
+// `id`. The caller can make up any id, as long as it is unique relative to the
+// other polyhedrons that the caller adds to the tree.
+//
+// `temp_buffer` is used internally to hold `source_vertices` after the are
+// converted to `HomoPoint3`. If `temp_buffer` is too small to hold all of
+// `source_vertices`, then this function will resize it.
+//
+// `source_vertices` are snapped to a grid before adding the polygon. The
+// length of each cube in the grid is 2^min_exponent. So a smaller min_exponent
+// means more precision. The grid snapping can be disabled by specifying a
+// `min_exponent` that is less than or equal to the minimum double exponent:
+// -1024.
+//
+// If `tree` is null, a new tree is allocated. In either case, the target tree
+// is returned. Every allocated tree should be freed with `FreeTree`.
+BSPTree<>* EMSCRIPTEN_KEEPALIVE AddDoublePolygonToTree(
+    BSPContentId id, size_t source_vertex_count, const double* source_vertices,
+    int min_exponent, std::vector<HomoPoint3>* temp_buffer, BSPTree<>* tree);
+
+void EMSCRIPTEN_KEEPALIVE FreeTree(BSPTree<>* tree);
+
+BSPContentId* EMSCRIPTEN_KEEPALIVE AllocateIdArray(size_t size);
+
+void EMSCRIPTEN_KEEPALIVE FreeIdArray(BSPContentId* ids);
+
+// Intersects the meshes in `tree` idenified by `ids`.
+//
+// The polyhedrons should be added to `tree` before calling this function,
+// using `AddDoublePolygonToTree`. This function may subdivide polygons within
+// `tree`, but `tree` will still represent the same polyhedrons when the
+// function ends.
+//
+// Any polyhedrons that happen to be in `tree` with an id not in `ids` are
+// ignored.
+//
+// This returns a pointer to the output `DoublePolygonArray`. If the passed in
+// `output` is non-null, it is used as the output buffer and returned.
+// Otherwise a new `DoublePolygonArray` is allocated and returned.
+//
+// The returned `DoublePolygonArray` must be freed exactly once using
+// `FreeDoublePolygonArray`. The returned `DoublePolygonArray` may be reused
+// before freeing it.
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output);
 
 }
 

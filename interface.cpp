@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iterator>
 
+#include "walnut/boolean_operation_filter.h"
 #include "walnut/bsp_tree.h"
 #include "walnut/convex_polygon_factory.h"
 
@@ -445,8 +446,9 @@ void GetPolygonVertices(
   }
 }
 
-DoublePolygonArray* GetDoublePolygonArrayFromMesh(
-    const std::vector<MutableConvexPolygon<>>* mesh,
+template <typename PolygonRep>
+DoublePolygonArray* GetDoublePolygonArrayFromMeshTemplated(
+    const std::vector<PolygonRep>* mesh,
     DoublePolygonArray* output) {
   if (output == nullptr) {
     output = new DoublePolygonArray;
@@ -499,8 +501,97 @@ DoublePolygonArray* GetDoublePolygonArrayFromMesh(
   return output;
 }
 
+DoublePolygonArray* GetDoublePolygonArrayFromMesh(
+    const std::vector<MutableConvexPolygon<>>* mesh,
+    DoublePolygonArray* output) {
+  return GetDoublePolygonArrayFromMeshTemplated(mesh, output);
+}
+
 void FreeDoublePolygonArray(DoublePolygonArray* array) {
   delete array;
+}
+
+void AddPolygonToTree(BSPContentId id,
+                      const std::vector<HomoPoint3>& source,
+                      BSPTree<>& tree) {
+  class Collector : public ConvexPolygonFactory<HomoPoint3> {
+   public:
+    using ConvexPolygonFactory<HomoPoint3>::ConvexPolygonRep;
+
+    Collector(BSPContentId id, BSPTree<>& tree)
+      : id_(id), tree_(tree) { }
+
+   protected:
+    void Emit(ConvexPolygonRep&& polygon) override {
+      polygon.ReducePlaneNormal();
+      tree_.root.AddRootContent(id_, std::move(polygon));
+    }
+
+   private:
+    BSPContentId id_;
+    BSPTree<>& tree_;
+  };
+  Collector polygon_factory(id, tree);
+
+  polygon_factory.Build(/*begin=*/source.begin(),
+                        /*end=*/source.end());
+  tree.root.PushContentsToLeaves();
+}
+
+BSPTree<>* AddDoublePolygonToTree(BSPContentId id, size_t source_vertex_count,
+                            const double* source_vertices,
+                            int min_exponent,
+                            std::vector<HomoPoint3>* temp_buffer,
+                            BSPTree<>* tree) {
+  if (tree == nullptr) {
+    tree = new BSPTree<>;
+  }
+  temp_buffer->clear();
+  temp_buffer->reserve(source_vertex_count);
+  {
+    const double* source_vertices_end = source_vertices +
+                                        3 * source_vertex_count;
+    for (const double* pos = source_vertices; pos < source_vertices_end;
+         pos += 3) {
+      temp_buffer->push_back(HomoPoint3::FromDoubles(min_exponent,
+
+
+                                                     pos[0],
+                                                     pos[1],
+                                                     pos[2]));
+    }
+  }
+
+  AddPolygonToTree(id, *temp_buffer, *tree);
+  return tree;
+}
+
+void FreeTree(BSPTree<>* tree) {
+  delete tree;
+}
+
+BSPContentId* AllocateIdArray(size_t size) {
+  return new BSPContentId[size];
+}
+
+void FreeIdArray(BSPContentId* ids) {
+  delete[] ids;
+}
+
+DoublePolygonArray* EMSCRIPTEN_KEEPALIVE IntersectInTree(
+    BSPTree<>* tree, const BSPContentId* ids, size_t id_count,
+    DoublePolygonArray* output) {
+
+  auto error_log = [](const std::string& error) {
+    std::cerr << "Walnut error: " << error << std::endl;
+  };
+
+  IntersectIdsFilter filter(std::vector<BSPContentId>(ids, ids + id_count));
+  ConnectingVisitor<BooleanOperationFilter> visitor(filter, error_log);
+  tree->Traverse(visitor);
+  visitor.FilterEmptyPolygons();
+
+  return GetDoublePolygonArrayFromMeshTemplated(&visitor.polygons(), output);
 }
 
 } // walnut

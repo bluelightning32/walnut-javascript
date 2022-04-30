@@ -1,0 +1,25 @@
+{
+  "name": "@bluelightning32/walnut",
+  "version": "1.0.2",
+  "description": "The Walnut 3D boolean operation library compiled with WASM.",
+  "main": "release/walnut.js",
+  "files": [
+    "release/walnut.js",
+    "release/walnut.wasm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluelightning32/walnut-javascript.git"
+  },
+  "keywords": [
+    "3d",
+    "boolean",
+    "operation"
+  ],
+  "author": "Kyle Stemen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bluelightning32/walnut-javascript/issues"
+  },
+  "homepage": "https://github.com/bluelightning32/walnut-javascript#readme"
+}
